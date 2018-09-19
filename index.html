@@ -1,0 +1,58 @@
+<html>
+	<head> 
+	<!-- изменить добавление библиотеки как на яндексе -->
+	<meta http-equiv="Content-Type" content="text/html"; charset="utf-8">
+	</head>
+	<body>
+	<br>
+	<canvas id="paint" width="600" height="300" style="border:1px dotted green;"></canvas>
+	
+	<form name="add_node">
+    <!-- добавление ноды -->
+    <table>
+        <tr><td><b>название ноды:<b></td>
+            <td><input name="node_name" size=20
+                  onblur="this.value=this.value.toUpperCase()"></td></tr>
+        <tr><td><b>количество входов:<b></td>
+            <td><input name="node_num_input" size=20 value="1"
+                  onblur="this.value=this.value.toUpperCase()"></td></tr>
+        <tr><td><b>количество выходов:<b></td>
+            <td><input name="node_num_output" size=3 value="2"
+                  onblur="this.value=checkage(this.value)"
+                  onfocus="this.select()"></td></tr>
+    </table>
+    <!-- кнопки готовности и сброса -->
+    <input type="button" id="btn_done" value="добавить">
+    <input type='button' id="btn_delete" value="Удалить объект">
+</form>
+<!--//////////////////////////////////////////////////////////////-->
+<div class="text-center">
+    <button class="btn btn-primary" onclick="addRect()">Rectangle</button>
+    <button class="btn btn-primary" onClick="addChild()">Add Child</button>
+    <button class="btn btn-primary" onClick="deleteObject()">Delete Object</button>
+</div>
+<br/><br/>
+<div class="container text-center">
+    <canvas id="canvas"></canvas>
+</div>
+<!--//////////////////////////////////////////////////////////////-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/2.2.3/fabric.min.js">
+	</script>
+	<script src="scripts/script.js"></script>
+
+  <!--скрипт отлова нажатия клавиш-->
+ <script language="javascript" type="text/javascript">
+  document.onkeydown = function checkKeycode(event)
+  {
+    var keycode;
+    if(!event) var event = window.event;
+    if (event.keyCode) keycode = event.keyCode; // для IE
+    else if(event.which) keycode = event.which; // для всех браузеров
+    //console.log("keycode: "+keycode); // Выводим сообщение
+    // Тут можно написать функции при нажатии нужных клавиш
+  }
+ </script>
+
+	</body>
+</html>
