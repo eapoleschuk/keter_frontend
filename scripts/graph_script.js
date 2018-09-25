@@ -6,11 +6,14 @@ var connections = {};
 var all_input_connectors = {};
 var all_ouput_connectors = {};
 
-Raphael.fn.connection = function (to, from, color) {
+Raphael.fn.connection = function (from, to, color) {
     var fromKey = getConnectorKey(from.rect_id, from.idx);
     var toKey = getConnectorKey(to.rect_id, to.idx);
+    	console.log("CONNECTIONS")
+    console.log(from)
 
     if(typeof(connections[fromKey]) != "undefined" && typeof(connections[fromKey][toKey]) != "undefined" && connections[fromKey][toKey] != 0)
+    	//console.log("from")
         return;
 
     if(typeof(connections[fromKey]) == "undefined") 
@@ -23,8 +26,8 @@ Raphael.fn.connection = function (to, from, color) {
     connections[fromKey][toKey] = line;
     connections[toKey][fromKey] = line;
     line.attr({stroke: color, fill: "none"}); 
-
-    console.log(fromKey + " " + toKey + " " + line);
+    console.log("LINE")
+    console.log(line);
 };
 
 var getConnectorKey = function(rect_id, connector_id) {
@@ -56,7 +59,7 @@ var dragNode = function(collection) {
 
         this.animate({"fill-opacity": 1.0}, 500);
 
-        cancelAnimInpOutput();
+        //cancelAnimInpOutput();
     };
 };
 
@@ -67,7 +70,7 @@ var moveNode = function(collection) {
 
             if(elem.type == "ellipse"){
                 elem.attr({cx: elem.ox + dx, cy: elem.oy + dy});
-                moveConnections(elem.rect_id, elem.idx, dx, dy);
+                moveConnections(elem, elem.rect_id, elem.idx, dx, dy);
             } else {
                 elem.attr({x: elem.ox + dx, y: elem.oy + dy});
             }
@@ -75,57 +78,72 @@ var moveNode = function(collection) {
     };
 };
 
-var moveConnections = function(rect_id, connector_id, x, y) {
+var moveConnections = function(elem, rect_id, connector_id, x, y) {
     var conn_key = getConnectorKey(rect_id, connector_id);
     if(typeof(connections[conn_key]) == "undefined") 
         return; //эта вершина никогда коннектилась
-    console.log(rect_id + " " + connector_id);
     var connectorsFromOtherEnd = connections[conn_key];
-
+    
     for(var otherEndId in connectorsFromOtherEnd) {
         var corrLine = connections[conn_key][otherEndId];
-        console.log(connections[conn_key][otherEndId]);
+
         if(typeof(corrLine) != "undefined" && corrLine != 0) {
             var xStartCoorLine = corrLine.attr('path')[0][1];
             var yStartCoorLine = corrLine.attr('path')[0][2];
-            r.connection(inp_clicked, output_clicked, "#fff");
-            //xStartCoorLine = xStartCoorLine+dx;
-            //console.log(dx + " " + xStartCoorLine+ " " + yStartCoorLine);
-           // r.connection(inp_clicked, output_clicked, "#fff");
+            // corrLine.attr('path')[0][1] = inp_clicked.attr("cx");
+            // corrLine.attr('path')[0][2] = inp_clicked.attr("cy");
+            // corrLine.attr('path')[1][1] = output_clicked.attr("cx");
+            // corrLine.attr('path')[1][2] = output_clicked.attr("cy");
+            corrLine.remove();
+            //console.warn(connections[conn_key][otherEndId])
+            	//all_input_connectors = ;
+            	 connections[conn_key][otherEndId] = 0;
+            	 connections[otherEndId][conn_key] = 0;
+            
         } 
     }
-}
+console.log(map);
+     map.forEach( (value, key, map) => { 
+     	console.log(key); // огурцов: 500 гр, и т.д.
+		r.connection(value, key, "#fff");
+ 		});
+ }
 
 var upNode  = function(collection) { 
     return function () {
            this.animate({"fill-opacity": 0}, 500);
     };
 }
+var map = new Map();
 
+var all_inputs=[];
+var all_outputs = [];
 var connect = function(){
+
     if(inp_clicked != null && output_clicked != null) {
-        r.connection(inp_clicked, output_clicked, "#fff");
-        console.log(inp_clicked.id + " " + output_clicked.id);
-        inp_clicked.animate({"stroke-width": 1.0}, 100);
+        r.connection(output_clicked, inp_clicked, "#fff");
+        inp_clicked.animate({"stroke-width": 5.0}, 100);
         output_clicked.animate({"stroke-width": 1.0}, 100);
-        inp_clicked = null;
-        output_clicked = null;
+        all_inputs[all_inputs.length] = inp_clicked;
+        all_outputs[all_outputs.length] = output_clicked;
+        map.set(inp_clicked, output_clicked);
     }
 }
 
 var selected_rect = null;
 
-var inpClick = function(rect_id, index) { 
+var inpClick = function(rec, rect_id, index) { 
     return function(e) {
         if(inp_clicked == null){
             this.animate({"stroke-width": 5.0}, 100);
             inp_clicked = this;
+
         } else {
             inp_clicked.animate({"stroke-width": 1}, 100);
             this.animate({"stroke-width": 5.0}, 100);
             inp_clicked = this;
         } 
-
+        console.log(rec);
         connect();
     }
 }
@@ -143,23 +161,6 @@ var outputClick = function(rect_id, index) {
     }
 }
 
-var clickOff = function(collection){
-    return function () {
-        for(var i = 0; i < collection.length; i++) {
-            var elem = collection[i];
-
-            if(elem.type == "rect"){
-                alert("rect");
-            }
-            else if(elem.type == "ellipse"){
-                alert('ellipse');
-            }
-        }
-
-        cancelAnimInpOutput();
-    };
-}
-
 var rect_id = 0;
 var add_elem = function (cx, cy, inputs_count, outputs_count) {
     let WIDTH = 60;
@@ -169,9 +170,10 @@ var add_elem = function (cx, cy, inputs_count, outputs_count) {
     rect_id = rect_id + 1;
     let recColor = Raphael.getColor();    
     rec.attr({fill: recColor, stroke: recColor, "fill-opacity": 0, "stroke-width": 2, cursor: "move"});
-   
+    rec.rect_id=rect_id;
     let col = [rec];
     rec.drag(moveNode(col), dragNode(col), upNode(col));
+    //rec.click(function(){alert(rec.rect_id)})
     
 
     let inpColor = Raphael.getColor();    
@@ -183,7 +185,7 @@ var add_elem = function (cx, cy, inputs_count, outputs_count) {
         elem.rect_id = rect_id;
         
         elem.attr({fill: inpColor, stroke: inpColor, "fill-opacity": 1.0, "stroke-width": 2, cursor: "move"});
-        elem.click(inpClick(rect_id, i));
+        elem.click(inpClick(rec, rec.rect_id, i));
         col.push(elem);
     }
 
@@ -195,7 +197,7 @@ var add_elem = function (cx, cy, inputs_count, outputs_count) {
         elem.rect_id = rect_id;
        
         elem.attr({fill: outColor, stroke: outColor, "fill-opacity": 1.0, "stroke-width": 2, cursor: "move"});
-        elem.click(outputClick(rect_id, i));
+        elem.click(outputClick(rec.rect_id, i));
         col.push(elem); 
     }
     
