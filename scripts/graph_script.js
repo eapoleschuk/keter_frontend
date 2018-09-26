@@ -6,36 +6,75 @@ var connections = {};
 var all_input_connectors = {};
 var all_ouput_connectors = {};
 
+var map = new Map();
+var all_inputs=[];
+var all_outputs = [];
+
+var inp_clicked = null;
+var output_clicked = null;
+
+Raphael.fn.arrow = function(x1, y1, x2, y2, size) {
+  var angle = Raphael.angle(x1, y1, x2, y2);
+  var a45   = Raphael.rad(angle-45);
+  var a45m  = Raphael.rad(angle+45);
+  var a135  = Raphael.rad(angle-135);
+  var a135m = Raphael.rad(angle+135);
+  var x1a = x1 + Math.cos(a135) * size;
+  var y1a = y1 + Math.sin(a135) * size;
+  var x1b = x1 + Math.cos(a135m) * size;
+  var y1b = y1 + Math.sin(a135m) * size;
+  var x2a = x2 + Math.cos(a45) * size;
+  var y2a = y2 + Math.sin(a45) * size;
+  var x2b = x2 + Math.cos(a45m) * size;
+  var y2b = y2 + Math.sin(a45m) * size;
+  return this.path(
+    "M"+x1+" "+y1+"L"+x1a+" "+y1a+
+    "M"+x1+" "+y1+"L"+x1b+" "+y1b+
+    "M"+x1+" "+y1+"L"+x2+" "+y2+
+    "M"+x2+" "+y2+"L"+x2a+" "+y2a+
+    "M"+x2+" "+y2+"L"+x2b+" "+y2b
+  );
+};
+
 Raphael.fn.connection = function (from, to, color) {
     var fromKey = getConnectorKey(from.rect_id, from.idx);
     var toKey = getConnectorKey(to.rect_id, to.idx);
-    	console.log("CONNECTIONS")
-    console.log(from)
 
     if(typeof(connections[fromKey]) != "undefined" && typeof(connections[fromKey][toKey]) != "undefined" && connections[fromKey][toKey] != 0)
-    	//console.log("from")
         return;
-
     if(typeof(connections[fromKey]) == "undefined") 
         connections[fromKey] = {};
     if(typeof(connections[toKey]) == "undefined")
         connections[toKey] = {};
+    if(from.rect_id == to.rect_id || from.rect_id > to.rect_id )
+        return;
+    
 
     var lineCode = "M" + Math.floor(from.attr("cx")) + " " + Math.floor(from.attr("cy")) + "L" + Math.floor(to.attr("cx")) + " " + Math.floor(to.attr("cy"));
     var line = r.path(lineCode);
     connections[fromKey][toKey] = line;
     connections[toKey][fromKey] = line;
     line.attr({stroke: color, fill: "none"}); 
-    console.log("LINE")
-    console.log(line);
+    if(inp_clicked!=null)
+        console.log(map)
 };
 
 var getConnectorKey = function(rect_id, connector_id) {
     return rect_id + ":" + connector_id;
 }
 
-var inp_clicked = null;
-var output_clicked = null;
+var connect = function(){
+    if(inp_clicked != null && output_clicked != null) {
+        all_inputs[all_inputs.length] = inp_clicked;
+        all_outputs[all_outputs.length] = output_clicked;
+        map.set(inp_clicked, output_clicked);
+        r.connection(output_clicked, inp_clicked, "#fff");
+        inp_clicked.animate({"stroke-width": 5.0}, 100);
+        output_clicked.animate({"stroke-width": 1.0}, 100);
+        
+    }
+
+}
 
 var cancelAnimInpOutput = function(){
     if(inp_clicked != null){
@@ -95,18 +134,14 @@ var moveConnections = function(elem, rect_id, connector_id, x, y) {
             // corrLine.attr('path')[1][1] = output_clicked.attr("cx");
             // corrLine.attr('path')[1][2] = output_clicked.attr("cy");
             corrLine.remove();
-            //console.warn(connections[conn_key][otherEndId])
-            	//all_input_connectors = ;
             	 connections[conn_key][otherEndId] = 0;
             	 connections[otherEndId][conn_key] = 0;
             
         } 
     }
-console.log(map);
-     map.forEach( (value, key, map) => { 
-     	console.log(key); // огурцов: 500 гр, и т.д.
-		r.connection(value, key, "#fff");
- 		});
+    map.forEach( (value, key, map) => { 
+     	r.connection(value, key, "#fff");
+ 	});
  }
 
 var upNode  = function(collection) { 
@@ -114,23 +149,6 @@ var upNode  = function(collection) {
            this.animate({"fill-opacity": 0}, 500);
     };
 }
-var map = new Map();
-
-var all_inputs=[];
-var all_outputs = [];
-var connect = function(){
-
-    if(inp_clicked != null && output_clicked != null) {
-        r.connection(output_clicked, inp_clicked, "#fff");
-        inp_clicked.animate({"stroke-width": 5.0}, 100);
-        output_clicked.animate({"stroke-width": 1.0}, 100);
-        all_inputs[all_inputs.length] = inp_clicked;
-        all_outputs[all_outputs.length] = output_clicked;
-        map.set(inp_clicked, output_clicked);
-    }
-}
-
-var selected_rect = null;
 
 var inpClick = function(rec, rect_id, index) { 
     return function(e) {
@@ -143,7 +161,7 @@ var inpClick = function(rec, rect_id, index) {
             this.animate({"stroke-width": 5.0}, 100);
             inp_clicked = this;
         } 
-        console.log(rec);
+        this.attr("button.disabled")
         connect();
     }
 }
