@@ -1,4 +1,6 @@
 var holder = document.getElementById('holder');
+var btn_done = document.getElementById('btn_done');
+var btn_delete = document.getElementById('btn_delete');
 
 var r = Raphael("holder", 640, 480);
 
@@ -23,7 +25,8 @@ Raphael.fn.connection = function (from, to, color) {
         connections[fromKey] = {};
     if(typeof(connections[toKey]) == "undefined")
         connections[toKey] = {};
-    if(from.rect_id == to.rect_id || from.rect_id > to.rect_id )
+    if(from.rect_id == to.rect_id)
+        //|| from.rect_id > to.rect_id ) FIX IT!!!! зацикливание
         return;
     
 
@@ -46,8 +49,7 @@ var connect = function(){
         map.set(inp_clicked, output_clicked);
         r.connection(output_clicked, inp_clicked, "#fff");
         inp_clicked.animate({"stroke-width": 5.0}, 100);
-        output_clicked.animate({"stroke-width": 1.0}, 100);
-        
+        output_clicked.animate({"stroke-width": 1.0}, 100);     
     }
 
 }
@@ -73,8 +75,6 @@ var dragNode = function(collection) {
         }
 
         this.animate({"fill-opacity": 1.0}, 500);
-
-        //cancelAnimInpOutput();
     };
 };
 
@@ -85,7 +85,7 @@ var moveNode = function(collection) {
 
             if(elem.type == "ellipse"){
                 elem.attr({cx: elem.ox + dx, cy: elem.oy + dy});
-                moveConnections(elem, elem.rect_id, elem.idx, dx, dy);
+                moveConnections(elem.rect_id, elem.idx);
             } else {
                 elem.attr({x: elem.ox + dx, y: elem.oy + dy});
             }
@@ -93,7 +93,19 @@ var moveNode = function(collection) {
     };
 };
 
-var moveConnections = function(elem, rect_id, connector_id, x, y) {
+var findAnotherEnd = function(rect_id, connector_id){
+    var conn_key = getConnectorKey(rect_id, connector_id);
+    if(typeof(connections[conn_key]) == "undefined") 
+        return; //эта вершина никогда коннектилась
+    var connectorsFromOtherEnd = connections[conn_key];
+    
+    for(var otherEndId in connectorsFromOtherEnd) {
+        var corrLine = connections[conn_key][otherEndId];
+        
+    }
+}
+
+var moveConnections = function(rect_id, connector_id) {
     var conn_key = getConnectorKey(rect_id, connector_id);
     if(typeof(connections[conn_key]) == "undefined") 
         return; //эта вершина никогда коннектилась
@@ -103,16 +115,15 @@ var moveConnections = function(elem, rect_id, connector_id, x, y) {
         var corrLine = connections[conn_key][otherEndId];
 
         if(typeof(corrLine) != "undefined" && corrLine != 0) {
-            var xStartCoorLine = corrLine.attr('path')[0][1];
-            var yStartCoorLine = corrLine.attr('path')[0][2];
+            //var xStartCoorLine = corrLine.attr('path')[0][1];
+            //var yStartCoorLine = corrLine.attr('path')[0][2];
             // corrLine.attr('path')[0][1] = inp_clicked.attr("cx");
             // corrLine.attr('path')[0][2] = inp_clicked.attr("cy");
             // corrLine.attr('path')[1][1] = output_clicked.attr("cx");
             // corrLine.attr('path')[1][2] = output_clicked.attr("cy");
             corrLine.remove();
             	 connections[conn_key][otherEndId] = 0;
-            	 connections[otherEndId][conn_key] = 0;
-            
+            	 connections[otherEndId][conn_key] = 0;            
         } 
     }
     map.forEach( (value, key, map) => { 
@@ -137,8 +148,11 @@ var inpClick = function(rec, rect_id, index) {
             this.animate({"stroke-width": 5.0}, 100);
             inp_clicked = this;
         } 
-        this.attr("button.disabled")
-        connect();
+        if(typeof(connections[getConnectorKey(rect_id, index)]) == "undefined"){
+            console.log(rect_id + " " + index + " connection not exist");
+            connect();     
+                output_clicked = null;
+        } else alert("connection already exist! You couldn't add more connections to one input")
     }
 }
 
@@ -156,10 +170,11 @@ var outputClick = function(rect_id, index) {
 }
 
 var rect_id = 0;
-var add_elem = function (cx, cy, inputs_count, outputs_count) {
+var add_elem = function (cx, cy, inputs_count, outputs_count, node_name) {
+    console.log(typeof(inputs_count));
+
     let WIDTH = 60;
     let HEIGHT = 80; 
-
     let rec = r.rect(cx - WIDTH / 2, cy - HEIGHT / 2, WIDTH, HEIGHT, 10);
     rect_id = rect_id + 1;
     let recColor = Raphael.getColor();    
@@ -167,14 +182,13 @@ var add_elem = function (cx, cy, inputs_count, outputs_count) {
     rec.rect_id=rect_id;
     let col = [rec];
     rec.drag(moveNode(col), dragNode(col), upNode(col));
-    //rec.click(function(){alert(rec.rect_id)})
     
-
     let inpColor = Raphael.getColor();    
     for(var i = 0; i < inputs_count; i++) {
         let heightDelta = HEIGHT / (inputs_count + 1);
     
         let elem = r.ellipse(cx - WIDTH / 2, cy - HEIGHT / 2 + heightDelta * (i + 1), 5, 5);
+        console.log((cx - WIDTH / 2) + " " + (cy - HEIGHT / 2 + heightDelta))
         elem.idx = i;
         elem.rect_id = rect_id;
         
@@ -194,22 +208,28 @@ var add_elem = function (cx, cy, inputs_count, outputs_count) {
         elem.click(outputClick(rec.rect_id, i));
         col.push(elem); 
     }
-    
-    let nodeName = r.text(cx, cy, rect_id+" node").attr({fill: "#fff"});
+    let nodeName = r.text(cx, cy, node_name).attr({fill: "#fff"});
     col.push(nodeName);
     col.push()
 };
 
-btn_done = document.getElementById('add_button');
-btn_done.onclick = function() {
-    add_elem(290, 80, 6, 2);
+// btn_done = document.getElementById('add_button');
+// btn_done.onclick = function() {
+//     add_elem(290, 80, 6, 2);
+// };
+
+// var test_connection = function(){
+//     add_elem (290, 80, 2, 2);
+//     add_elem (390, 80, 8, 2);
+// }
+
+// test_connection();
+
+btn_done.onclick = function(){
+    var node_name_from_user = document.add_node.node_name.value;
+    var inputs_count_from_user = parseInt(document.add_node.node_num_input.value);
+    var outputs_count_from_user = parseInt(document.add_node.node_num_output.value);
+    add_elem(290, 80, inputs_count_from_user, outputs_count_from_user, node_name_from_user);
 };
-
-var test_connection = function(){
-    add_elem (290, 80, 2, 2);
-    add_elem (390, 80, 8, 2);
-}
-
-test_connection();
 
 
